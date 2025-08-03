@@ -1,4 +1,4 @@
-Objective Synthesizer
+# Objective Synthesizer
 A framework-agnostic library for building highly structured, logical, and interactive user interfaces with a scientific aesthetic.
 Introduction
 The Objective Synthesizer is an open-source, Web Component-based library designed to empower developers and designers to create complex, data-driven interfaces. Inspired by the principles of objectivity and scientific rigor, this tool provides a robust foundation for building everything from dynamic dashboards to advanced scientific modeling tools. It requires no external frameworks, ensuring it can be integrated into any web project with minimal overhead.
