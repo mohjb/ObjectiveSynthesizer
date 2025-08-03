@@ -1,0 +1,377 @@
+<!--
+    This is the complete and consolidated code for Phases 1-5 of the Objective Synthesizer library.
+    It contains all the base classes, core components, advanced components, and the conceptual
+    UI editor framework we have developed so far.
+
+    To use this, save the file as `index.html` and open it in a browser to see the UI editor
+    in action. You can then copy this code into your GitHub repository.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Objective Synthesizer - UI Editor</title>
+    <!-- ObjectiveSynthesizer Global Theme -->
+    <style id="objectivesynthesizer-theme">
+        :root {
+            --objectivesynthesizer-background: #000000;
+            --objectivesynthesizer-panel-bg: #27436b;
+            --objectivesynthesizer-panel-border: #627db8;
+            --objectivesynthesizer-gold: #FF9900;
+            --objectivesynthesizer-yellow: #FFFF66;
+            --objectivesynthesizer-red: #CC3333;
+            --objectivesynthesizer-blue: #6699FF;
+            --objectivesynthesizer-magenta: #CC66FF;
+            --objectivesynthesizer-text-primary: #FFFFFF;
+            --objectivesynthesizer-text-secondary: #AAAAAA;
+            --objectivesynthesizer-font: 'Swiss 911', 'Arial Narrow', sans-serif;
+            --objectivesynthesizer-padding-sm: 8px;
+            --objectivesynthesizer-padding-md: 16px;
+            --objectivesynthesizer-padding-lg: 24px;
+            --objectivesynthesizer-border-radius: 8px;
+            --objectivesynthesizer-transition-duration: 0.2s;
+        }
+        body {
+            background-color: var(--objectivesynthesizer-background);
+            color: var(--objectivesynthesizer-text-primary);
+            font-family: var(--objectivesynthesizer-font);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: var(--objectivesynthesizer-padding-lg);
+        }
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: var(--objectivesynthesizer-padding-lg);
+            width: 100%;
+            max-width: 1600px;
+            height: 90vh;
+        }
+        h1 {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--objectivesynthesizer-gold);
+            font-size: 2rem;
+            margin-bottom: var(--objectivesynthesizer-padding-lg);
+            margin-top: 0;
+        }
+        .main-view {
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px dashed var(--objectivesynthesizer-panel-border);
+            border-radius: var(--objectivesynthesizer-border-radius);
+            padding: var(--objectivesynthesizer-padding-lg);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .palette, .inspector {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: var(--objectivesynthesizer-padding-md);
+        }
+        .palette h3, .inspector h3 {
+            margin: 0;
+            color: var(--objectivesynthesizer-yellow);
+        }
+        .palette-item {
+            cursor: grab;
+            user-select: none;
+            padding: var(--objectivesynthesizer-padding-sm) var(--objectivesynthesizer-padding-md);
+            background-color: var(--objectivesynthesizer-blue);
+            border-radius: var(--objectivesynthesizer-border-radius);
+            text-align: center;
+            transition: background-color var(--objectivesynthesizer-transition-duration);
+        }
+        .palette-item:hover {
+            background-color: var(--objectivesynthesizer-gold);
+        }
+        .panel-inspector-wrapper {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 300px;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out;
+            z-index: 10;
+        }
+        .panel-inspector-wrapper.visible {
+            transform: translateX(0);
+        }
+        .panel-inspector-toggle {
+            position: absolute;
+            top: 50%;
+            left: -20px;
+            transform: translateY(-50%) rotate(90deg);
+            cursor: pointer;
+            padding: 5px;
+            background-color: var(--objectivesynthesizer-gold);
+            color: var(--objectivesynthesizer-background);
+            border-radius: 5px 5px 0 0;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <main class="editor-grid">
+        <h1>Objective Synthesizer - UI Editor</h1>
+
+        <!-- Component Palette -->
+        <objectivesynthesizer-panel class="palette" title="Components">
+            <h3>Basic Components</h3>
+            <div class="palette-item" draggable="true" data-component-type="button">Button</div>
+            <div class="palette-item" draggable="true" data-component-type="readout">Readout</div>
+            <div class="palette-item" draggable="true" data-component-type="gauge">Gauge</div>
+            <div class="palette-item" draggable="true" data-component-type="slider">Slider</div>
+            <div class="palette-item" draggable="true" data-component-type="panel">Panel</div>
+        </objectivesynthesizer-panel>
+
+        <!-- Preview Window -->
+        <objectivesynthesizer-panel class="main-view" title="Preview Window">
+            <p style="text-align:center; color: var(--objectivesynthesizer-text-secondary);">Drag and drop components here...</p>
+        </objectivesynthesizer-panel>
+
+        <!-- Panel Inspector (Annotation Panel) -->
+        <div class="panel-inspector-wrapper" id="inspector-wrapper">
+            <objectivesynthesizer-panel-inspector title="Component Inspector"></objectivesynthesizer-panel-inspector>
+        </div>
+
+    </main>
+
+    <script type="module">
+        // --- Core Base Classes from Phase 1 ---
+        class ObjectiveSynthesizerComponent extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+            }
+            connectedCallback() { this.render(); }
+            render() {
+                this.shadowRoot.innerHTML = `<style>:host { display: block; font-family: var(--objectivesynthesizer-font); color: var(--objectivesynthesizer-text-primary); }</style><slot></slot>`;
+            }
+        }
+        class ObjectiveSynthesizerContainer extends ObjectiveSynthesizerComponent {
+            render() {
+                this.shadowRoot.innerHTML = `<style>:host { display: block; padding: var(--objectivesynthesizer-padding-lg); border: 2px solid var(--objectivesynthesizer-panel-border); background-color: var(--objectivesynthesizer-panel-bg); border-radius: var(--objectivesynthesizer-border-radius); box-sizing: border-box; }</style><slot></slot>`;
+            }
+        }
+        customElements.define('objectivesynthesizer-component', ObjectiveSynthesizerComponent);
+        customElements.define('objectivesynthesizer-container', ObjectiveSynthesizerContainer);
+
+        // --- Components from Phase 2 ---
+        class ObjectiveSynthesizerPanel extends ObjectiveSynthesizerContainer {
+            constructor() { super(); this.title = this.getAttribute('title') || 'Panel'; }
+            render() {
+                this.shadowRoot.innerHTML = `<style>:host { display: flex; flex-direction: column; padding: var(--objectivesynthesizer-padding-lg); border: 2px solid var(--objectivesynthesizer-panel-border); background-color: var(--objectivesynthesizer-panel-bg); border-radius: var(--objectivesynthesizer-border-radius); min-height: 200px; box-sizing: border-box; position: relative; } .panel-header { background-color: var(--objectivesynthesizer-gold); color: var(--objectivesynthesizer-background); padding: var(--objectivesynthesizer-padding-sm) var(--objectivesynthesizer-padding-md); border-radius: var(--objectivesynthesizer-border-radius) var(--objectivesynthesizer-border-radius) 0 0; font-weight: bold; text-align: center; text-transform: uppercase; margin: calc(-1 * var(--objectivesynthesizer-padding-lg)) calc(-1 * var(--objectivesynthesizer-padding-lg)) var(--objectivesynthesizer-padding-lg) calc(-1 * var(--objectivesynthesizer-padding-lg)); } .content { display: flex; flex-direction: column; gap: var(--objectivesynthesizer-padding-md); height: 100%; }</style><div class="panel-header">${this.title}</div><div class="content"><slot></slot></div>`;
+            }
+        }
+        class ObjectiveSynthesizerButton extends ObjectiveSynthesizerComponent {
+            constructor() { super(); this.text = this.getAttribute('text') || 'Action'; this.color = this.getAttribute('color') || 'blue'; this.handleClick = this.handleClick.bind(this); }
+            connectedCallback() { super.connectedCallback(); this.shadowRoot.addEventListener('click', this.handleClick); }
+            disconnectedCallback() { this.shadowRoot.removeEventListener('click', this.handleClick); }
+            handleClick() { this.dispatchEvent(new CustomEvent('objectivesynthesizer-action', { bubbles: true, composed: true })); }
+            render() {
+                this.shadowRoot.innerHTML = `<style>.button { background-color: var(--objectivesynthesizer-${this.color}); color: var(--objectivesynthesizer-text-primary); font-size: 1rem; padding: var(--objectivesynthesizer-padding-sm) var(--objectivesynthesizer-padding-md); border: none; cursor: pointer; border-radius: var(--objectivesynthesizer-border-radius); transition: background-color var(--objectivesynthesizer-transition-duration), color var(--objectivesynthesizer-transition-duration); text-align: center; } .button:hover { background-color: var(--objectivesynthesizer-gold); color: var(--objectivesynthesizer-background); }</style><button class="button">${this.text}</button>`;
+            }
+        }
+        class ObjectiveSynthesizerReadout extends ObjectiveSynthesizerComponent {
+            constructor() { super(); this.label = this.getAttribute('label') || 'Data'; this.text = this.getAttribute('text') || '---'; }
+            static get observedAttributes() { return ['text']; }
+            attributeChangedCallback(name, oldValue, newValue) { if (name === 'text' && oldValue !== newValue) { this.text = newValue; this.render(); } }
+            render() {
+                this.shadowRoot.innerHTML = `<style>:host { display: block; } .readout { display: flex; justify-content: space-between; align-items: center; padding: var(--objectivesynthesizer-padding-sm) var(--objectivesynthesizer-padding-md); background-color: rgba(0, 0, 0, 0.2); border-radius: var(--objectivesynthesizer-border-radius); font-size: 1rem; } .label { color: var(--objectivesynthesizer-text-secondary); text-transform: uppercase; } .value { color: var(--objectivesynthesizer-yellow); font-weight: bold; }</style><div class="readout"><span class="label">${this.label}:</span><span class="value">${this.text}</span></div>`;
+            }
+        }
+        customElements.define('objectivesynthesizer-panel', ObjectiveSynthesizerPanel);
+        customElements.define('objectivesynthesizer-button', ObjectiveSynthesizerButton);
+        customElements.define('objectivesynthesizer-readout', ObjectiveSynthesizerReadout);
+
+        // --- Components from Phase 3 ---
+        class ObjectiveSynthesizerGauge extends ObjectiveSynthesizerComponent {
+            constructor() { super(); this.value = parseFloat(this.getAttribute('value')) || 0; this.min = parseFloat(this.getAttribute('min')) || 0; this.max = parseFloat(this.getAttribute('max')) || 100; }
+            static get observedAttributes() { return ['value']; }
+            attributeChangedCallback(name, oldValue, newValue) { if (name === 'value') { this.value = parseFloat(newValue); this.updateGauge(); } }
+            updateGauge() { const fill = this.shadowRoot.querySelector('.gauge-fill'); const percent = ((this.value - this.min) / (this.max - this.min)) * 100; if(fill) fill.style.width = `${Math.max(0, Math.min(100, percent))}%`; }
+            render() { this.shadowRoot.innerHTML = `<style>:host { display: block; background-color: rgba(0, 0, 0, 0.2); border-radius: var(--objectivesynthesizer-border-radius); height: 24px; overflow: hidden; } .gauge-fill { height: 100%; background-color: var(--objectivesynthesizer-blue); width: 0; transition: width var(--objectivesynthesizer-transition-duration) ease-out; border-radius: var(--objectivesynthesizer-border-radius); }</style><div class="gauge-fill"></div>`; this.updateGauge(); }
+        }
+        class ObjectiveSynthesizerSlider extends ObjectiveSynthesizerComponent {
+            constructor() { super(); this.value = parseFloat(this.getAttribute('value')) || 50; this.min = parseFloat(this.getAttribute('min')) || 0; this.max = parseFloat(this.getAttribute('max')) || 100; this.isDragging = false; this.handleMouseDown = this.handleMouseDown.bind(this); this.handleMouseMove = this.handleMouseMove.bind(this); this.handleMouseUp = this.handleMouseUp.bind(this); }
+            connectedCallback() { super.connectedCallback(); this.shadowRoot.addEventListener('mousedown', this.handleMouseDown); window.addEventListener('mousemove', this.handleMouseMove); window.addEventListener('mouseup', this.handleMouseUp); }
+            disconnectedCallback() { this.shadowRoot.removeEventListener('mousedown', this.handleMouseDown); window.removeEventListener('mousemove', this.handleMouseMove); window.removeEventListener('mouseup', this.handleMouseUp); }
+            updateValue(event) { const sliderRect = this.shadowRoot.host.getBoundingClientRect(); const clickX = event.clientX - sliderRect.left; const percent = Math.max(0, Math.min(1, clickX / sliderRect.width)); const newValue = this.min + percent * (this.max - this.min); this.value = Math.round(newValue); this.dispatchEvent(new CustomEvent('objectivesynthesizer-change', { detail: { value: this.value }, bubbles: true, composed: true })); this.render(); }
+            render() { const percent = ((this.value - this.min) / (this.max - this.min)) * 100; this.shadowRoot.innerHTML = `<style>:host { display: block; background-color: rgba(0, 0, 0, 0.2); border-radius: var(--objectivesynthesizer-border-radius); height: 24px; position: relative; cursor: pointer; } .slider-fill { height: 100%; background-color: var(--objectivesynthesizer-magenta); width: ${percent}%; border-radius: var(--objectivesynthesizer-border-radius); transition: width var(--objectivesynthesizer-transition-duration) ease-out; } .slider-thumb { position: absolute; top: 0; left: ${percent}%; transform: translateX(-50%); height: 100%; width: 10px; background-color: var(--objectivesynthesizer-gold); border-radius: 2px; box-shadow: 0 0 8px var(--objectivesynthesizer-gold); }</style><div class="slider-fill"></div><div class="slider-thumb"></div>`; }
+        }
+        customElements.define('objectivesynthesizer-gauge', ObjectiveSynthesizerGauge);
+        customElements.define('objectivesynthesizer-slider', ObjectiveSynthesizerSlider);
+
+        // --- Phase 5 New Component: The Panel Inspector (Annotation) ---
+        class ObjectiveSynthesizerPanelInspector extends ObjectiveSynthesizerPanel {
+            constructor() {
+                super();
+                this.title = this.getAttribute('title') || 'Inspector';
+                this.targetElement = null;
+            }
+            inspect(element) {
+                this.targetElement = element;
+                this.render();
+            }
+            render() {
+                let content = `
+                    <style>
+                        .inspector-content {
+                            display: flex;
+                            flex-direction: column;
+                            gap: var(--objectivesynthesizer-padding-md);
+                            font-size: 0.9rem;
+                        }
+                        .inspector-content h4 {
+                            margin: 0;
+                            color: var(--objectivesynthesizer-yellow);
+                        }
+                        .inspector-prop {
+                            display: flex;
+                            justify-content: space-between;
+                            background-color: rgba(0,0,0,0.2);
+                            padding: var(--objectivesynthesizer-padding-sm);
+                            border-radius: var(--objectivesynthesizer-border-radius);
+                        }
+                    </style>
+                    <div class="inspector-content">
+                `;
+                if (this.targetElement) {
+                    content += `
+                        <h4>Selected: &lt;${this.targetElement.tagName.toLowerCase()}&gt;</h4>
+                        <div class="inspector-prop"><span>Class:</span><span>${this.targetElement.constructor.name}</span></div>
+                        <div class="inspector-prop"><span>Attributes:</span></div>
+                    `;
+                    for (let i = 0; i < this.targetElement.attributes.length; i++) {
+                        const attr = this.targetElement.attributes[i];
+                        content += `<div class="inspector-prop"><span>&nbsp;&nbsp;${attr.name}:</span><span>${attr.value}</span></div>`;
+                    }
+                } else {
+                    content += `<p>Select a component to inspect its properties.</p>`;
+                }
+                content += `</div>`;
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: flex;
+                            flex-direction: column;
+                            padding: var(--objectivesynthesizer-padding-lg);
+                            border: 2px solid var(--objectivesynthesizer-panel-border);
+                            background-color: var(--objectivesynthesizer-panel-bg);
+                            border-radius: var(--objectivesynthesizer-border-radius);
+                            min-height: 100%;
+                            box-sizing: border-box;
+                            position: relative;
+                        }
+                        .panel-header {
+                            background-color: var(--objectivesynthesizer-gold);
+                            color: var(--objectivesynthesizer-background);
+                            padding: var(--objectivesynthesizer-padding-sm) var(--objectivesynthesizer-padding-md);
+                            border-radius: var(--objectivesynthesizer-border-radius) var(--objectivesynthesizer-border-radius) 0 0;
+                            font-weight: bold;
+                            text-align: center;
+                            text-transform: uppercase;
+                            margin: calc(-1 * var(--objectivesynthesizer-padding-lg)) calc(-1 * var(--objectivesynthesizer-padding-lg)) var(--objectivesynthesizer-padding-lg) calc(-1 * var(--objectivesynthesizer-padding-lg));
+                            cursor: grab;
+                        }
+                        .content {
+                            flex-grow: 1;
+                            overflow-y: auto;
+                        }
+                    </style>
+                    <div class="panel-header">${this.title}</div>
+                    <div class="content">${content}</div>
+                `;
+            }
+        }
+        customElements.define('objectivesynthesizer-panel-inspector', ObjectiveSynthesizerPanelInspector);
+
+        // --- Editor Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const paletteItems = document.querySelectorAll('.palette-item');
+            const previewWindow = document.querySelector('.main-view');
+            const inspectorWrapper = document.getElementById('inspector-wrapper');
+            const inspector = inspectorWrapper.querySelector('objectivesynthesizer-panel-inspector');
+
+            let dragTarget = null;
+
+            paletteItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    dragTarget = e.target;
+                    e.dataTransfer.setData('text/plain', e.target.dataset.componentType);
+                });
+            });
+
+            previewWindow.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            previewWindow.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (dragTarget) {
+                    const componentType = dragTarget.dataset.componentType;
+                    let newComponent;
+
+                    switch(componentType) {
+                        case 'button':
+                            newComponent = document.createElement('objectivesynthesizer-button');
+                            newComponent.setAttribute('text', 'New Button');
+                            break;
+                        case 'readout':
+                            newComponent = document.createElement('objectivesynthesizer-readout');
+                            newComponent.setAttribute('label', 'New Data');
+                            newComponent.setAttribute('text', '0');
+                            break;
+                        case 'gauge':
+                            newComponent = document.createElement('objectivesynthesizer-gauge');
+                            newComponent.setAttribute('value', '50');
+                            break;
+                        case 'slider':
+                            newComponent = document.createElement('objectivesynthesizer-slider');
+                            newComponent.setAttribute('value', '50');
+                            break;
+                        case 'panel':
+                            newComponent = document.createElement('objectivesynthesizer-panel');
+                            newComponent.setAttribute('title', 'New Panel');
+                            break;
+                    }
+
+                    if (newComponent) {
+                        const previewContent = previewWindow.shadowRoot.querySelector('.content');
+                        if (previewContent) {
+                             newComponent.addEventListener('click', (ev) => {
+                                 inspector.inspect(ev.target);
+                                 ev.stopPropagation();
+                             });
+                             previewContent.appendChild(newComponent);
+                        }
+                    }
+                }
+            });
+
+            const toggleButton = document.createElement('div');
+            toggleButton.className = 'panel-inspector-toggle';
+            toggleButton.textContent = 'Inspector';
+            toggleButton.addEventListener('click', () => {
+                inspectorWrapper.classList.toggle('visible');
+            });
+            inspectorWrapper.appendChild(toggleButton);
+
+            previewWindow.addEventListener('click', (ev) => {
+                 if (ev.target.tagName.toLowerCase() === 'objectivesynthesizer-panel' && ev.target.classList.contains('main-view')) {
+                     inspector.inspect(null);
+                 }
+            });
+        });
+    </script>
+</body>
+</html>
+
